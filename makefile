@@ -17,3 +17,6 @@ client:
 server:
 	cc -o Server.out Server.c
 
+clean:
+	rm *.class
+	rm *.out
