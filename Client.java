@@ -15,7 +15,10 @@ import java.io.*;
 
 public class Client {
     public static void main (String args[]) {
-        // Comand line input: Client ServerName ServerPort MyPort
+        if (args.length == 1 && args[0].equals("test")) {
+            TestSuite.runTests();
+        }
+        // Command line input: Client ServerName ServerPort MyPort
         if (args.length != 3) {
             System.out.println("Usage: Client ServerName ServerPort MyPort");
             return;
@@ -28,7 +31,7 @@ public class Client {
         } catch (NumberFormatException e) {
             System.out.println("Port numbers must be integer values");
             return;
-        }
+        } // end parsing command line output
         
         Requestor requestor = new Requestor();
         UDPPacket packet = null;
@@ -76,6 +79,11 @@ public class Client {
 class Requestor {
     public static final byte OUR_GID = 1;
     public static final int MAX_BUFFER_SIZE = 32; // can't see why we'd need more
+    public static final int REQUEST_MAGIC1 = 0;
+    public static final int REQUEST_MAGIC2 = 1;
+    public static final int REQUEST_PORT1 = 2;
+    public static final int REQUEST_PORT2 = 3;
+    public static final int REQUEST_GID = 4;
 
     UDPPacket request(String serverName, int serverPort, int myPort) throws Exception{
         byte[] data = buildRequest(OUR_GID, myPort);
@@ -93,11 +101,11 @@ class Requestor {
     
     byte[] buildRequest(byte GID, int port) {
         byte[] request = new byte[UDPPacket.WAIT_LENGTH];
-        request[UDPPacket.MAGIC1_LOCATION] = (byte)(UDPPacket.MAGIC_NUM >> 8);
-        request[UDPPacket.MAGIC2_LOCATION] = (byte)(UDPPacket.MAGIC_NUM);
-        request[WaitPacket.GID_LOCATION] = GID;
-        request[WaitPacket.PORT1] = (byte)(port >> 8);
-        request[WaitPacket.PORT2] = (byte)port;
+        request[REQUEST_MAGIC1] = (byte)(UDPPacket.MAGIC_NUM >> 8);
+        request[REQUEST_MAGIC2] = (byte)(UDPPacket.MAGIC_NUM);
+        request[REQUEST_GID] = GID;
+        request[REQUEST_PORT1] = (byte)(port >> 8);
+        request[REQUEST_PORT2] = (byte)port;
         return request;
     }
 }
@@ -107,7 +115,13 @@ class Requestor {
 class UDPPacketFactory {
     static UDPPacket getUDPPacket(byte[] packetIn, int length) throws Exception {
         int requestIn; // Analyze type of packet by contents!
-        if (length == UDPPacket.CONNECT_LENGTH)
+        if (length != UDPPacket.CONNECT_LENGTH && length != UDPPacket.WAIT_LENGTH &&
+                length != UDPPacket.ERROR_LENGTH)
+            throw new Exception("UDPPacketFactory: Invalid length:" + length);
+        else if ((packetIn[UDPPacket.MAGIC1_LOCATION] & 0x0FF) != 0x0A5 &&
+                 (packetIn[UDPPacket.MAGIC2_LOCATION] & 0x0FF) != 0x0A5) 
+            throw new Exception("UDPPacketFactory: Invalid magic number!");
+        else if (length == UDPPacket.CONNECT_LENGTH)
             requestIn = UDPPacket.CONNECT_CODE;
         else if (packetIn[ErrorPacket.ZERO_LOCATION] == 0x00)
             requestIn = UDPPacket.ERROR_CODE;
@@ -202,14 +216,14 @@ class ConnectPacket extends UDPPacket {
     }
 
     String getIPAddress() {
-        return ((byte)packet[IP1] + "." +
-                (byte)packet[IP2] + "." +
-                (byte)packet[IP3] + "." +
-                (byte)packet[IP4]);
+        return ((packet[IP1]&0x0FF) + "." +
+                (packet[IP2]&0x0FF) + "." +
+                (packet[IP3]&0x0FF) + "." +
+                (packet[IP4]&0x0FF));
     }
 
     int getPortNumber() {
-        return (packet[PORT1] << 8) + (packet[PORT2]);
+        return ((packet[PORT1] & 0x0FF) << 8) + ((packet[PORT2] & 0x0FF)) & 0x0FFFF;
     }
 
     byte getErrorValue() throws Exception {
@@ -236,7 +250,7 @@ class WaitPacket extends UDPPacket {
     }
 
     int getPortNumber() {
-        return (packet[PORT1] << 8) + (packet[PORT2]);
+        return ((packet[PORT1] & 0x0FF) << 8) + ((packet[PORT2] & 0x0FF)) & 0x0FFFF;
     }
 
     byte getErrorValue() throws Exception {
@@ -289,7 +303,7 @@ class Printer {
     static void parsePacketHex(byte[] packet) {
         System.err.println("DEBUG: PARSING PACKET:");
         for (byte b : packet) {
-            System.err.printf("0x%0X ", b);
+            System.err.printf("0x%02X ", b);
         }
         System.err.println("");
     }
@@ -306,6 +320,64 @@ class Printer {
             System.err.println("\tIncorrect length");
         if ((error & PORT_NUM_OOR) > 0)
             System.err.println("\tPort number out of range");
+    }
+}
+
+/******************* TESTER FUNCTIONS ********************************************/
+class TestSuite {
+    static void runTests() {
+        System.err.println("TESTING UDPPackets:");
+        Requestor r = new Requestor();
+        System.err.println("Expected:\n0xA5 0xA5 0xAB 0xCD 0x0A");
+        Printer.parsePacketHex(r.buildRequest((byte)0x0A, 0xABCD));
+        UDPPacket pkt;
+        byte[] invalid1 = {1};
+        byte[] invalid2 = {0, 0, 1, 1, 1};
+        byte[] invalid3 = {(byte)0xA5, (byte)0xA5, 1, 1, 1, 1};
+        try {
+            UDPPacketFactory.getUDPPacket(invalid1, invalid1.length);
+            UDPPacketFactory.getUDPPacket(invalid2, invalid2.length);
+            UDPPacketFactory.getUDPPacket(invalid3, invalid3.length);
+            System.err.println("Invalid packet failed!");
+        } catch (Exception e) {
+            System.err.println("Invalid packet success!");
+        }
+        byte[] validError = {(byte)0xA5, (byte)0xA5, 10, 0, 7};
+        try {
+            pkt = UDPPacketFactory.getUDPPacket(validError, validError.length);
+            if (pkt.getErrorValue() != 7) throw new Exception("getErrorValue()");
+            if (pkt.getGID() != 10) throw new Exception("getGID()");
+            System.err.println("Valid error success!");
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            System.err.println("Valid error failed!");
+        }
+        byte[] validWait = {(byte)0xA5, (byte)0xA5, 10, (byte)0xAB, (byte)0xCD};
+        try {
+            pkt = UDPPacketFactory.getUDPPacket(validWait, validWait.length);
+            if (pkt.getGID() != 10) throw new Exception("getGID()");
+            if (pkt.getPortNumber() != 0x0ABCD) 
+                throw new Exception("getPortNumber() = " + pkt.getPortNumber());
+            System.err.println("Valid wait success!");
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            System.err.println("Valid wait failed!");
+        }
+        byte[] validConnect = {(byte)0xA5, (byte)0xA5, (byte)131, (byte)204, 
+            (byte)14, (byte)199, (byte)0xAB, (byte)0xCD, 10};
+        try {
+            pkt = UDPPacketFactory.getUDPPacket(validConnect, validConnect.length);
+            if (pkt.getGID() != 10) throw new Exception("getGID()");
+            if (!pkt.getIPAddress().equals("131.204.14.199")) 
+                throw new Exception("getIPAddress" + pkt.getIPAddress());
+            if (pkt.getPortNumber() != 0x0ABCD) 
+                throw new Exception("getPortNumber() = " + pkt.getPortNumber());
+            System.err.println("Valid connect success!");
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            System.err.println("Valid connect failed!");
+        }
+
     }
 }
 
