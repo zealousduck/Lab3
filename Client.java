@@ -42,7 +42,7 @@ public class Client {
             return;
         }
         if (packet == null) {
-            System.err.println("Something went wrong with packet...");
+            System.err.println("Uh. Shit. Something went wrong...");
             return;
         }
         Printer.parsePacketHex(packet.getRawPacket());
@@ -61,6 +61,8 @@ public class Client {
                 chatter = 
                     new ChatClient(packet.getIPAddress(), packet.getPortNumber());
                 break;
+            default:
+                System.out.println("Unidentified packet type");
         }
         } catch (Exception e) {
             System.err.println(e.getMessage());
