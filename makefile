@@ -1,5 +1,5 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#									LAB 2 MAKEFILE							  #
+#									LAB 3 MAKEFILE							  #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 all:
@@ -12,8 +12,8 @@ log:
 	ls -lt
 
 client:
-	cc -o UDPclient.out UDPclient.c
+	javac Client.java
 
 server:
-	javac UDPserver.java
+	cc -o Server.out Server.c
 

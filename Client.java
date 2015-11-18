@@ -10,49 +10,111 @@
 
 import java.util.*;
 import java.lang.*;
+import java.net.*;
+import java.io.*;
 
 public class Client {
     public static void main (String args[]) {
-        // parse command line input
+        // Comand line input: Client ServerName ServerPort MyPort
+        if (args.length != 3) {
+            System.out.println("Usage: Client ServerName ServerPort MyPort");
+            return;
+        }
+        String serverName = args[0];
+        int serverPort = 0, myPort = 0;
+        try {
+            serverPort = Integer.parseInt(args[1]);
+            myPort = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            System.out.println("Port numbers must be integer values");
+            return;
+        }
         
-        Requestor requestor; // new Requestor, connects via UDP
-        UDPPacket packet; // gotten from request()
-        Chatter chatter; // new Chatter based on response from requestor, see _CODE
-
+        Requestor requestor = new Requestor();
+        UDPPacket packet = null;
+        try {
+            packet = requestor.request(serverName, serverPort, myPort);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            return;
+        }
+        if (packet == null) {
+            System.err.println("Something went wrong with packet...");
+            return;
+        }
+        Printer.parsePacketHex(packet.getRawPacket());
+        Chatter chatter = null; 
+        try {
+        switch (packet.getRequestType()) {
+            case UDPPacket.ERROR_CODE:
+                System.out.println("Received an Error Packet:");
+                Printer.parseErrorValue(packet.getErrorValue());
+                break;
+            case UDPPacket.WAIT_CODE:
+                chatter = 
+                    new ChatServer(packet.getIPAddress(), packet.getPortNumber());
+                break;
+            case UDPPacket.CONNECT_CODE:
+                chatter = 
+                    new ChatClient(packet.getIPAddress(), packet.getPortNumber());
+                break;
+        }
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            return;
+        }
+        if (chatter != null) {
+            chatter.run();
+        }
     }
+
+} // End Client
 
 /******************* HELPER CLASSES BELOW THIS LINE ******************************/
 
 /******************* UDP CLIENT **************************************************/
 class Requestor {
-    
-    Requestor() {
-        // Stub
-    }
+    public static final byte OUR_GID = 1;
+    public static final int MAX_BUFFER_SIZE = 32; // can't see why we'd need more
 
-    UDPPacket request() {
-        // stub
-        // connect to UDP server
-        // make request
-        // get packet back
-        // use factory to generate packet
-        return null; // Not a valid
+    UDPPacket request(String serverName, int serverPort, int myPort) throws Exception{
+        byte[] data = buildRequest(OUR_GID, myPort);
+        DatagramPacket packetToSend = 
+            new DatagramPacket(data, data.length, 
+                InetAddress.getByName(serverName), serverPort);
+        DatagramSocket sock = new DatagramSocket();
+        sock.send(packetToSend);
+        DatagramPacket packetToReceive = 
+            new DatagramPacket(new byte[MAX_BUFFER_SIZE], MAX_BUFFER_SIZE);
+        sock.receive(packetToReceive);
+        return UDPPacketFactory.getUDPPacket(packetToReceive.getData(), 
+                                             packetToReceive.getLength());
+    }
+    
+    byte[] buildRequest(byte GID, int port) {
+        byte[] request = new byte[UDPPacket.WAIT_LENGTH];
+        request[UDPPacket.MAGIC1_LOCATION] = (byte)(UDPPacket.MAGIC_NUM >> 8);
+        request[UDPPacket.MAGIC2_LOCATION] = (byte)(UDPPacket.MAGIC_NUM);
+        request[WaitPacket.GID_LOCATION] = GID;
+        request[WaitPacket.PORT1] = (byte)(port >> 8);
+        request[WaitPacket.PORT2] = (byte)port;
+        return request;
     }
 }
 
 
 /******************* UDP PACKETS *************************************************/
 class UDPPacketFactory {
-    UDPPacket getUDPPacket(byte[] packetIn) throws Exception {
+    static UDPPacket getUDPPacket(byte[] packetIn, int length) throws Exception {
         int requestIn; // Analyze type of packet by contents!
-        if (packetIn.length == UDPPacket.CONNECT_LENGTH)
+        if (length == UDPPacket.CONNECT_LENGTH)
             requestIn = UDPPacket.CONNECT_CODE;
         else if (packetIn[ErrorPacket.ZERO_LOCATION] == 0x00)
             requestIn = UDPPacket.ERROR_CODE;
         else if (packetIn[ErrorPacket.ZERO_LOCATION] != 0x00)
             requestIn = UDPPacket.WAIT_CODE;
         else
-            throw new Exception("Invalid packetIn length!!");
+            throw new Exception("UDPPacketFactory: Invalid packetIn!");
         switch (requestIn) {
             case UDPPacket.ERROR_CODE:
                 return new ErrorPacket(requestIn, packetIn);
@@ -60,14 +122,16 @@ class UDPPacketFactory {
                 return new WaitPacket(requestIn, packetIn);
             case UDPPacket.CONNECT_CODE:
                 return new ConnectPacket(requestIn, packetIn);
-            default:
-                throw new Exception("Invalid request Type!");
+            default: // Should never happen because we throw earlier?
+                throw new Exception("UDPPacketFactory: Invalid request Type!");
         }
     }
 }
 
 abstract class UDPPacket { 
     static final int MAGIC_NUM = 0xA5A5;
+    static final int MAGIC1_LOCATION = 0;
+    static final int MAGIC2_LOCATION = 1;
     static final int ERROR_CODE = -13;
     static final int ERROR_LENGTH = 5;
     static final int WAIT_CODE = 0;
@@ -82,19 +146,21 @@ abstract class UDPPacket {
         packet = packetIn;
     }
 
-    int getRequestType() {
-        return requestType;
-    }
+    int getRequestType() { return requestType; }
+
+    byte[] getRawPacket() { return packet; }
 
     abstract byte getGID();
     abstract String getIPAddress() throws Exception; 
     abstract int getPortNumber() throws Exception;
-    abstract int getErrorValue() throws Exception; 
+    abstract byte getErrorValue() throws Exception; 
 }
 
 class ErrorPacket extends UDPPacket {
     static final int GID_LOCATION = 2;
     static final int ZERO_LOCATION = 3;
+    static final int ERROR_LOCATION = 4;
+
     ErrorPacket(int requestIn, byte[] packetIn) {
         super(requestIn, packetIn);
         packetLength = UDPPacket.ERROR_LENGTH;
@@ -105,15 +171,15 @@ class ErrorPacket extends UDPPacket {
     }
 
     String getIPAddress() throws Exception {
-        throw new Exception("Packet has no IP address field!");
+        throw new Exception("ErrorPacket has no IP address field!");
     }
 
     int getPortNumber() throws Exception {
-        throw new Exception("Packet has no Port number field!");
+        throw new Exception("ErrorPacket has no Port number field!");
     }
 
-    int getErrorValue() {
-        return -1;
+    byte getErrorValue() {
+        return packet[ERROR_LOCATION];
     }
 }
 
@@ -125,6 +191,7 @@ class ConnectPacket extends UDPPacket {
     static final int PORT1 = 6;
     static final int PORT2 = 7;
     static final int GID_LOCATION = 8;
+
     ConnectPacket(int requestIn, byte[] packetIn) {
         super(requestIn, packetIn);
         packetLength = UDPPacket.CONNECT_LENGTH;
@@ -145,13 +212,16 @@ class ConnectPacket extends UDPPacket {
         return (packet[PORT1] << 8) + (packet[PORT2]);
     }
 
-    int getErrorValue() throws Exception {
-        throw new Exception("Packet has no Error value field!");
+    byte getErrorValue() throws Exception {
+        throw new Exception("ConnectPacket has no Error value field!");
     }
 }
 
 class WaitPacket extends UDPPacket {
     static final int GID_LOCATION = 2;
+    static final int PORT1 = 3;
+    static final int PORT2 = 4;
+
     WaitPacket(int requestIn, byte[] packetIn) {
         super(requestIn, packetIn);
         packetLength = UDPPacket.WAIT_LENGTH; 
@@ -162,15 +232,15 @@ class WaitPacket extends UDPPacket {
     }
 
     String getIPAddress() throws Exception {
-        throw new Exception("Packet has no IP address field!");
+        throw new Exception("WaitPacket has no IP address field!");
     }
 
     int getPortNumber() {
-        return -1;
+        return (packet[PORT1] << 8) + (packet[PORT2]);
     }
 
-    int getErrorValue() throws Exception {
-        throw new Exception("Packet has no Error value field!");
+    byte getErrorValue() throws Exception {
+        throw new Exception("WaitPacket has no Error value field!");
     }
 }
 
@@ -181,7 +251,7 @@ abstract class Chatter { abstract void run(); }
 class ChatServer extends Chatter {
     // Insert socket here
 
-    ChatServer(int ip, int port) {
+    ChatServer(String ip, int port) {
         // Stub
     }
 
@@ -199,7 +269,7 @@ class ChatServer extends Chatter {
 class ChatClient extends Chatter {
     // Insert socket here
 
-    ChatClient(int ip, int port) {
+    ChatClient(String ip, int port) {
         // Stub
     }
     
@@ -214,11 +284,28 @@ class ChatClient extends Chatter {
     }
 }
 
-static void parseErrorValue(int error) {
-    // Print out an error message based on type
-    // magic problem = 1
-    // length probelm = 2
-    // port out of range = 4
+/******************* PRINT FUNCTIONS *********************************************/
+class Printer {
+    static void parsePacketHex(byte[] packet) {
+        System.err.println("DEBUG: PARSING PACKET:");
+        for (byte b : packet) {
+            System.err.printf("0x%0X ", b);
+        }
+        System.err.println("");
+    }
+
+    static void parseErrorValue(byte error) {
+        byte VOODOO_MAGIC = 0x1;
+        byte LENGTH_ERROR = 0x2;
+        byte PORT_NUM_OOR = 0x4;
+        // Print out an error message based on type
+        System.err.println("Errors:");
+        if ((error & VOODOO_MAGIC) > 0)
+            System.err.println("\tIncorrect magic number");
+        if ((error & LENGTH_ERROR) > 0)
+            System.err.println("\tIncorrect length");
+        if ((error & PORT_NUM_OOR) > 0)
+            System.err.println("\tPort number out of range");
+    }
 }
 
-} // End Client
