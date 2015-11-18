@@ -44,13 +44,21 @@ class Requestor {
 /******************* UDP PACKETS *************************************************/
 class UDPPacketFactory {
     UDPPacket getUDPPacket(byte[] packetIn) throws Exception {
-        int requestIn = -1; // Analyze type of packet by contents!
+        int requestIn; // Analyze type of packet by contents!
+        if (packetIn.length == UDPPacket.CONNECT_LENGTH)
+            requestIn = UDPPacket.CONNECT_CODE;
+        else if (packetIn[ErrorPacket.ZERO_LOCATION] == 0x00)
+            requestIn = UDPPacket.ERROR_CODE;
+        else if (packetIn[ErrorPacket.ZERO_LOCATION] != 0x00)
+            requestIn = UDPPacket.WAIT_CODE;
+        else
+            throw new Exception("Invalid packetIn length!!");
         switch (requestIn) {
             case UDPPacket.ERROR_CODE:
                 return new ErrorPacket(requestIn, packetIn);
-            case UDPPacket.SERVER_CODE:
+            case UDPPacket.WAIT_CODE:
                 return new WaitPacket(requestIn, packetIn);
-            case UDPPacket.CLIENT_CODE:
+            case UDPPacket.CONNECT_CODE:
                 return new ConnectPacket(requestIn, packetIn);
             default:
                 throw new Exception("Invalid request Type!");
@@ -61,8 +69,11 @@ class UDPPacketFactory {
 abstract class UDPPacket { 
     static final int MAGIC_NUM = 0xA5A5;
     static final int ERROR_CODE = -13;
-    static final int SERVER_CODE = 0;
-    static final int CLIENT_CODE = 1;
+    static final int ERROR_LENGTH = 5;
+    static final int WAIT_CODE = 0;
+    static final int WAIT_LENGTH = 5;
+    static final int CONNECT_CODE = 1;
+    static final int CONNECT_LENGTH = 9;
     int requestType;
     int packetLength;
     byte[] packet;
@@ -75,20 +86,22 @@ abstract class UDPPacket {
         return requestType;
     }
 
-    abstract int getGID();
+    abstract byte getGID();
     abstract String getIPAddress() throws Exception; 
     abstract int getPortNumber() throws Exception;
     abstract int getErrorValue() throws Exception; 
 }
 
 class ErrorPacket extends UDPPacket {
+    static final int GID_LOCATION = 2;
+    static final int ZERO_LOCATION = 3;
     ErrorPacket(int requestIn, byte[] packetIn) {
         super(requestIn, packetIn);
-        packetLength = -1;
+        packetLength = UDPPacket.ERROR_LENGTH;
     }
     // insert relevant info extracts here
-    int getGID() {
-        return -1;
+    byte getGID() {
+        return packet[GID_LOCATION];
     }
 
     String getIPAddress() throws Exception {
@@ -105,21 +118,31 @@ class ErrorPacket extends UDPPacket {
 }
 
 class ConnectPacket extends UDPPacket {
+    static final int IP1 = 2;
+    static final int IP2 = 3;
+    static final int IP3 = 4;
+    static final int IP4 = 5;
+    static final int PORT1 = 6;
+    static final int PORT2 = 7;
+    static final int GID_LOCATION = 8;
     ConnectPacket(int requestIn, byte[] packetIn) {
         super(requestIn, packetIn);
-        packetLength = -1;
+        packetLength = UDPPacket.CONNECT_LENGTH;
     }
     // insert relevant info extracts here
-    int getGID() {
-        return -1;
+    byte getGID() {
+        return packet[GID_LOCATION];
     }
 
-    String getIPAddress() throws Exception {
-        return null;
+    String getIPAddress() {
+        return ((byte)packet[IP1] + "." +
+                (byte)packet[IP2] + "." +
+                (byte)packet[IP3] + "." +
+                (byte)packet[IP4]);
     }
 
-    int getPortNumber() throws Exception {
-        return -1;
+    int getPortNumber() {
+        return (packet[PORT1] << 8) + (packet[PORT2]);
     }
 
     int getErrorValue() throws Exception {
@@ -128,13 +151,14 @@ class ConnectPacket extends UDPPacket {
 }
 
 class WaitPacket extends UDPPacket {
+    static final int GID_LOCATION = 2;
     WaitPacket(int requestIn, byte[] packetIn) {
         super(requestIn, packetIn);
-        packetLength = -1; 
+        packetLength = UDPPacket.WAIT_LENGTH; 
     }
     // insert relevant info extracts here
-    int getGID() {
-        return -1;
+    byte getGID() {
+        return packet[GID_LOCATION];
     }
 
     String getIPAddress() throws Exception {
