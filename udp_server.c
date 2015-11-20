@@ -45,17 +45,26 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                             p->ai_protocol)) == -1) {
+            perror("server: socket");
+            continue;
+        }
 
-	if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-		close(sockfd);
-		perror("listener: bind");
-	}
+        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+            perror("listener: bind");
+            continue;
+        }
+        break;
+    }
 
-	if (p == NULL) {
-		fprintf(stderr, "listener: failed to bind socket\n");
-		return 2;
-	}
+        if (p == NULL) {
+            fprintf(stderr, "listener: failed to bind socket\n");
+            return 2;
+        }
+    
 
 	freeaddrinfo(servinfo);
 
@@ -67,35 +76,37 @@ int main(int argc, char *argv[])
 		perror("recvfrom");
 		exit(1);
 	}
-		
-	int ipAddr = inet_ntoa(their_addr.sin_addr);
-	int portAddr = ntohs(their_addr.sin_port);	
 
-	int theirGID = atoi(buf[4]);
-	uint16_t theirPort = (uint16_t)(atoi(buf[2]) << 8) | atoi(buf[3]);
+	int ipAddr = (int)(their_addr.sin_addr.s_addr);
+	uint16_t portAddr = ntohs(their_addr.sin_port);
 
+    int theirGID = buf[4];
+    int theirPort = (buf[2] << 8) + buf[3];
 
 	//check for errors
-	if ((buf[0] != magicNumber && buf[1] != magicNumber) || numbytes != 5 || 
-		theirPort < (10010 + 5 * theirGID) || theirPort > (10010 + 5 * theirGID + 4)) {
+    uint8_t errorCode = 0x00;
+    
+    if (buf[0] != magicNumber && buf[1] != magicNumber) {
+        errorCode += 1;
+    }
+    
+    if (numbytes != 5) {
+        errorCode += 2;
+    }
+    
+    if (theirPort < (10010 + 5 * theirGID) || theirPort > (10010 + 5 * theirGID + 4)) {
+        errorCode += 4;
+    }
+    
+    //if error, send error packet
+	if (errorCode != 0x00) {
 		char errorPacket[5];
 		memset(errorPacket,0,5);
 		errorPacket[0] = (unsigned char)0xA5;
 		errorPacket[1] = (unsigned char)0xA5;
 		errorPacket[2] = (unsigned char)1;
-		errorPacket[3] = (unsigned char)0x00;
-
-		if (buf[0] != magicNumber && buf[1] != magicNumber) {
-			errorPacket[4] = (unsigned char)0x0001;
-		}
-
-		else if (numbytes != 5) {
-			errorPacket[4] = (unsigned char)0x0010;
-		}
-
-		else if (theirPort < (10010 + 5 * theirGID) || theirPort > (10010 + 5 * theirGID + 4)) {
-			errorPacket[4] = (unsigned char)0x0100;
-		}
+        errorPacket[3] = (unsigned char)0x00;
+        errorPacket[4] = (unsigned char)errorCode;
 
 		if ((numbytes = sendto(sockfd, (char*)&errorPacket, 5, 0,
 			p->ai_addr, p->ai_addrlen)) == -1) {
@@ -124,16 +135,19 @@ int main(int argc, char *argv[])
 	}
 
 	if (waiting == 1) {
-		char waitingPacket[6];
-		memset(waitingPacket,0,6);
+		char waitingPacket[9];
+		memset(waitingPacket,0,9);
 		waitingPacket[0] = (unsigned char)0xA5;
 		waitingPacket[1] = (unsigned char)0xA5;
-		waitingPacket[2] = (unsigned char)ipAddr;
-		waitingPacket[3] = (unsigned char)portAddr >> 8;
-		waitingPacket[4] = (unsigned char)portAddr >> 0;
-		waitingPacket[5] = (unsigned char)1;
+		waitingPacket[2] = (unsigned char)ipAddr >> 24;
+        waitingPacket[3] = (unsigned char)ipAddr >> 16;
+        waitingPacket[4] = (unsigned char)ipAddr >> 8;
+        waitingPacket[5] = (unsigned char)ipAddr >> 0;
+		waitingPacket[6] = (unsigned char)portAddr >> 8;
+		waitingPacket[7] = (unsigned char)portAddr >> 0;
+		waitingPacket[8] = (unsigned char)1;
 
-		if ((numbytes = sendto(sockfd, (char*)&waitingPacket, 6, 0,
+		if ((numbytes = sendto(sockfd, (char*)&waitingPacket, 9, 0,
 			p->ai_addr, p->ai_addrlen)) == -1) {
 			perror("sendto");
 			exit(1);
