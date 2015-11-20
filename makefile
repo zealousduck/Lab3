@@ -15,7 +15,7 @@ client:
 	javac Client.java
 
 server:
-	cc -o Server.out Server.c
+	cc -o Server.out udp_server.c
 
 clean:
 	rm *.class
