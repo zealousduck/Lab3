@@ -323,14 +323,15 @@ class Printer {
         byte VOODOO_MAGIC = 0x1;
         byte LENGTH_ERROR = 0x2;
         byte PORT_NUM_OOR = 0x4;
+        String errorStr = "Errors:";
         // Print out an error message based on type
-        System.err.println("Errors:");
         if ((error & VOODOO_MAGIC) > 0)
-            System.err.println("\tIncorrect magic number");
+            errorStr += ("\tmagic number |");
         if ((error & LENGTH_ERROR) > 0)
-            System.err.println("\tIncorrect length");
+            errorStr += ("| packet length |");
         if ((error & PORT_NUM_OOR) > 0)
-            System.err.println("\tPort number out of range");
+            errorStr += ("| Port out of range");
+        System.err.println(errorStr);
     }
 }
 
