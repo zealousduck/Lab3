@@ -53,8 +53,7 @@ public class Client {
                 Printer.parseErrorValue(packet.getErrorValue());
                 break;
             case UDPPacket.WAIT_CODE:
-                chatter = new ChatServer(packet.getIPAddress(), 
-                                         packet.getPortNumber());
+                chatter = new ChatServer(packet.getPortNumber());
                 break;
             case UDPPacket.CONNECT_CODE:
                 chatter = new ChatClient(packet.getIPAddress(), 
@@ -79,7 +78,7 @@ public class Client {
 /*================== UDP CLIENT ==============================================*/
 class Requestor {
     public static final byte OUR_GID = 1;
-    public static final int MAX_BUFFER_SIZE = 32; // more?
+    public static final int MAX_BUFFER_SIZE = 9; // more?
     public static final int REQUEST_MAGIC1 = 0;
     public static final int REQUEST_MAGIC2 = 1;
     public static final int REQUEST_PORT1 = 2;
@@ -276,7 +275,7 @@ abstract class Chatter { abstract void run(); }
 class ChatServer extends Chatter {
     // Insert socket here
 
-    ChatServer(String ip, int port) {
+    ChatServer(int port) {
         // Stub
     }
 
