@@ -312,8 +312,14 @@ class ChatClient extends Chatter {
 class Printer {
     static void parsePacketHex(byte[] packet) {
         System.err.println("DEBUG: PARSING PACKET:");
+        String temp = "";
         for (byte b : packet) {
-            System.err.printf("0x%02X ", b);
+            if (b != 0x00) {
+                System.err.printf(temp + "0x%02X ", b);
+                temp = "";
+            } else {
+                temp += "0x" + b + " "; // save bytes, only print if a non-zero appears
+            }
         }
         System.err.println("");
     }
