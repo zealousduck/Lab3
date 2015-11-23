@@ -88,6 +88,14 @@ int main(int argc, char *argv[])
 
 		int ipAddr = (int)(their_addr.sin_addr.s_addr);
 		uint16_t portAddr = ntohs(their_addr.sin_port);
+	
+		unsigned char ipAddress[4];
+		ipAddress[0] = ipAddr & 0xff;
+		ipAddress[1] = (ipAddr >> 8) & 0xff;
+		ipAddress[2] = (ipAddr >> 16) & 0xff;
+		ipAddress[3] = (ipAddr >> 24) & 0xff;
+
+		printf("%d.%d.%d.%d\n", ipAddress[0], ipAddress[1], ipAddress[2], ipAddress[3]);
 
     	int theirGID = buf[4];
     	int theirPort = (buf[2] << 8) + buf[3];
@@ -128,20 +136,19 @@ int main(int argc, char *argv[])
 			}
 		}
 
+		//if no client is waiting to talk
 		else if (waiting == 0) {
-            printf("Sending wait packet\n");
+            printf("There's no client waiting..\n");
 			waiting = 1;
-			char noWaitPacket[5];
-			memset(noWaitPacket,0,5);
-			noWaitPacket[0] = (unsigned char)0xA5;
-			noWaitPacket[1] = (unsigned char)0xA5;
-			noWaitPacket[2] = (unsigned char)1;
-			//noWaitPacket[3] = (unsigned char)portAddr >> 8;
-            noWaitPacket[3] = buf[2];
-			//noWaitPacket[4] = (unsigned char)portAddr >> 0;
-            noWaitPacket[4] = buf[3];
+			char waitPacket[5];
+			memset(waitPacket,0,5);
+			waitPacket[0] = (unsigned char)0xA5;
+			waitPacket[1] = (unsigned char)0xA5;
+			waitPacket[2] = (unsigned char)1;
+            waitPacket[3] = buf[2];
+            waitPacket[4] = buf[3];
 
-			if ((numbytes = sendto(sockfd, (char*)&noWaitPacket, 5, 0,
+			if ((numbytes = sendto(sockfd, (char*)&waitPacket, 5, 0,
 				(struct sockaddr *)&their_addr, addr_len)) == -1) {
 				perror("sendto");
 				exit(1);
@@ -151,22 +158,20 @@ int main(int argc, char *argv[])
 		}
 
 		else { // (waiting == 1) {
-            printf("Sending connect packet\n");
-			char waitingPacket[9];
+            printf("There's a client waiting to talk!\n");
+			char connectPacket[9];
 			memset(waitingPacket,0,9);
-			waitingPacket[0] = (unsigned char)0xA5;
-			waitingPacket[1] = (unsigned char)0xA5;
-			waitingPacket[2] = (unsigned char)ipAddr >> 24;
-        	waitingPacket[3] = (unsigned char)ipAddr >> 16;
-        	waitingPacket[4] = (unsigned char)ipAddr >> 8;
-        	waitingPacket[5] = (unsigned char)ipAddr >> 0;
-			//waitingPacket[6] = (unsigned char)portAddr >> 8;
-            waitingPacket[6] = buf[2];
-			//waitingPacket[7] = (unsigned char)portAddr >> 0;
-            waitingPacket[7] = buf[3];
-			waitingPacket[8] = (unsigned char)1;
+			connectPacket[0] = (unsigned char)0xA5;
+			connectPacket[1] = (unsigned char)0xA5;
+			connectPacket[2] = ipAddress[0];
+        	connectPacket[3] = ipAddress[1];
+        	connectPacket[4] = ipAddress[2];
+        	connectPacket[5] = ipAddress[3];
+            connectPacket[6] = buf[2];
+            connectPacket[7] = buf[3];
+			connectPacket[8] = (unsigned char)1;
 
-			if ((numbytes = sendto(sockfd, (char*)&waitingPacket, 9, 0,
+			if ((numbytes = sendto(sockfd, (char*)&connectPacket, 9, 0,
 				(struct sockaddr *)&their_addr, addr_len)) == -1) {
 				perror("sendto");
 				exit(1);
