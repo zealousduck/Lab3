@@ -1,7 +1,5 @@
-- Infinite loop on server side missing?
-- sendto: Invalid argument? (Review your sendto call!)
 - TCP EVERYTHING
-- maybe some debug printf statements?
 - see what the ip address is actually getting inserted as (wrong order?)
 - REMEMBER TO RENAME SHIT AT THE END
 - maybe a waiting thread? depends on how i'm feeling
+- TEST ON THE TUX MACHINES YOOOOOOOO
