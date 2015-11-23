@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		if (waiting == 0) {
+		else if (waiting == 0) {
             printf("Sending wait packet\n");
 			waiting = 1;
 			char noWaitPacket[5];
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
 				perror("sendto");
 				exit(1);
 			}
-
+            waiting = 0;
 		}
 	}	
 

@@ -277,9 +277,12 @@ class ChatServer extends Chatter {
 
     ChatServer(int port) {
         // Stub
+        System.err.println("new ChatServer created!");
+        System.err.println("port: " + port);
     }
 
     void run() {
+        System.err.println("...run does nothing!");
         // Stub
         // Wait for connections
         // prompt client
@@ -295,9 +298,13 @@ class ChatClient extends Chatter {
 
     ChatClient(String ip, int port) {
         // Stub
+        System.err.println("new ChatClient created!");
+        System.err.println("ip address: " + ip);
+        System.err.println("port: " + port);
     }
     
     void run() {
+        System.err.println("...run does nothing!");
         // Stub
         // connect
         // receive prompt
