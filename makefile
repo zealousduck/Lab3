@@ -6,6 +6,7 @@ all:
 	make log
 	make client
 	make server
+	cat todo.list
 	
 log:
 	date
