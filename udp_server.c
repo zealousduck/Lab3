@@ -80,8 +80,8 @@ int main(int argc, char *argv[])
 			perror("recvfrom");
 			exit(1);
 		}
-
-		for (int i = 0; i < PACKET_SIZE; i++) {
+        int i;
+		for (i = 0; i < PACKET_SIZE; i++) {
 			printf("0x%x ", buf[i] & 0xff);
 		}
 	    printf("\n");

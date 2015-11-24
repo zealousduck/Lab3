@@ -280,13 +280,14 @@ class ChatServer extends Chatter {
     PrintWriter out;
 
     ChatServer(int port) throws IOException {
+        System.err.println("Creating new ChatServer...");
+        System.err.println("port: " + port);
         try { serverSocket = new ServerSocket(port); }
         catch (IOException e) { 
             throw new IOException("Failed to create " + 
-                this.getClass().getSimpleName());
+                this.getClass().getSimpleName() + "!");
         }
         System.err.println("new ChatServer created!");
-        System.err.println("port: " + port);
     }
 
     void run() throws IOException {
@@ -321,10 +322,14 @@ class ChatClient extends Chatter {
     PrintWriter out;
 
     ChatClient(String ip, int port) throws IOException {
-        try {socket = new Socket(ip, port); }
+        System.err.println("Creating new ChatClient...");
+        System.err.println("ip address: " + ip);
+        System.err.println("port: " + port);
+        try {socket = new Socket(InetAddress.getByName(ip), port); }
         catch (IOException e) {
-            throw new IOException("Failed to create " + 
-                this.getClass().getSimpleName());
+            System.err.println(e.getMessage());
+            throw new IOException("Failed to create " +
+                this.getClass().getSimpleName() + "!");
         }
         try {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -333,8 +338,6 @@ class ChatClient extends Chatter {
             throw new IOException("Failed to get socket streams");
         }
         System.err.println("new ChatClient created!");
-        System.err.println("ip address: " + ip);
-        System.err.println("port: " + port);
     }
     
     void run() throws IOException {
