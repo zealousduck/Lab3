@@ -272,13 +272,24 @@ class WaitPacket extends UDPPacket {
 /*================== TCP CHATTERS ========================================*/
 abstract class Chatter { abstract void run(); }
 
+
+
 class ChatServer extends Chatter {
-    // Insert socket here
+    Socket chatServerSock;
+
 
     ChatServer(int port) {
-        // Stub
+    try{
+        ServerSocket chatServerSock = new ServerSocket(port);
         System.err.println("new ChatServer created!");
         System.err.println("port: " + port);
+        System.out.println("Server Started and listening to the port");
+    }
+    catch (IOException ex)
+    {
+        System.out.println (ex.toString());
+    }
+
     }
 
     void run() {
@@ -290,17 +301,26 @@ class ChatServer extends Chatter {
         // print message
         // terminate?
         // loop
+     
+        
+
     }
 }
 
 class ChatClient extends Chatter {
-    // Insert socket here
+    Socket chatClientSock;
 
     ChatClient(String ip, int port) {
         // Stub
+        try{
+        Socket chatClientSock = new Socket(ip, port);
         System.err.println("new ChatClient created!");
         System.err.println("ip address: " + ip);
         System.err.println("port: " + port);
+         }
+        catch(IOException ex){
+            System.out.println (ex.toString());
+        }
     }
     
     void run() {
