@@ -95,6 +95,8 @@ int main(int argc, char *argv[])
 		ipAddress[2] = (ipAddr >> 16) & 0xff;
 		ipAddress[3] = (ipAddr >> 24) & 0xff;
 
+        unsigned char registeredIpAddress[4]; // for storing the registered client
+
 		printf("---------------------------------------\n");
 		printf("IP ADDRESS:");
 		printf("%d.%d.%d.%d\n", ipAddress[0], ipAddress[1], ipAddress[2], ipAddress[3]);
@@ -159,6 +161,10 @@ int main(int argc, char *argv[])
 				perror("sendto");
 				exit(1);
 			}
+            registeredIpAddress[0] = ipAddress[0];
+            registeredIpAddress[1] = ipAddress[1];
+            registeredIpAddress[2] = ipAddress[2];
+            registeredIpAddress[3] = ipAddress[3];
 
 			//waiting = 0; // why was this here?
 		}
@@ -170,10 +176,10 @@ int main(int argc, char *argv[])
 			memset(connectPacket,0,9);
 			connectPacket[0] = (unsigned char)0xA5;
 			connectPacket[1] = (unsigned char)0xA5;
-			connectPacket[2] = ipAddress[0];
-        	connectPacket[3] = ipAddress[1];
-        	connectPacket[4] = ipAddress[2];
-        	connectPacket[5] = ipAddress[3];
+			connectPacket[2] = registeredIpAddress[0];
+        	connectPacket[3] = registeredIpAddress[1];
+        	connectPacket[4] = registeredIpAddress[2];
+        	connectPacket[5] = registeredIpAddress[3];
             connectPacket[6] = buf[2];
             connectPacket[7] = buf[3];
 			connectPacket[8] = (unsigned char)1;
