@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
 		ipAddress[3] = (ipAddr >> 24) & 0xff;
 
         unsigned char registeredIpAddress[4]; // for storing the registered client
+        unsigned char registeredPortNum[2]; // for storing the registered client
 
 		printf("---------------------------------------\n");
 		printf("IP ADDRESS:");
@@ -165,8 +166,8 @@ int main(int argc, char *argv[])
             registeredIpAddress[1] = ipAddress[1];
             registeredIpAddress[2] = ipAddress[2];
             registeredIpAddress[3] = ipAddress[3];
-
-			//waiting = 0; // why was this here?
+            registeredPortNum[0] = buf[2];
+            registeredPortNum[1] = buf[3];
 		}
 
 		//client watiing to talk
@@ -180,8 +181,8 @@ int main(int argc, char *argv[])
         	connectPacket[3] = registeredIpAddress[1];
         	connectPacket[4] = registeredIpAddress[2];
         	connectPacket[5] = registeredIpAddress[3];
-            connectPacket[6] = buf[2];
-            connectPacket[7] = buf[3];
+            connectPacket[6] = registeredPortNum[0];
+            connectPacket[7] = registeredPortNum[1];
 			connectPacket[8] = (unsigned char)1;
 
 			if ((numbytes = sendto(sockfd, (char*)&connectPacket, 9, 0,
