@@ -70,6 +70,7 @@ public class Client {
             try { chatter.run(); }
             catch (IOException e) { System.out.println(e.getMessage()); }
         }
+        System.out.println(); // Nice formatting
     }
 
 } // End Client
@@ -284,6 +285,7 @@ class ChatServer extends Chatter {
         System.err.println("port: " + port);
         try { serverSocket = new ServerSocket(port); }
         catch (IOException e) { 
+            System.err.println(e.getMessage());
             throw new IOException("Failed to create " + 
                 this.getClass().getSimpleName() + "!");
         }
@@ -293,30 +295,37 @@ class ChatServer extends Chatter {
     void run() throws IOException {
         try { socket = serverSocket.accept(); }
         catch (IOException e) { 
+            System.err.println(e.getMessage());
             throw new IOException("Failed to accept connection.");
         }
         try {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
         } catch (IOException e) {
+            System.err.println(e.getMessage());
             throw new IOException("Failed to get socket streams");
         }
-        String prompt = ("Hello! Please enter a message:\n");
+        System.out.println("=== Connected to " 
+            + socket.getInetAddress().getHostAddress() + " ========================");
+        String prompt = 
+            ("=== Welcome to the Group 1's Chat Room! Please enter a message: ===\n");
         out.println(prompt);
         String input = "";
         String terminateString = "bye bye birdie";
         while (!(input.toLowerCase().equals(terminateString))) {
             try { input = in.readLine(); }
             catch (IOException e) {
+                System.err.println(e.getMessage());
                 throw new IOException("Failed to read from socket.");
             }
             System.out.println(input);
         }
+        System.out.println("Closing " + this.getClass().getSimpleName() + "...");
+        socket.close();
     }
 }
 
 class ChatClient extends Chatter {
-    // Insert socket here
     Socket socket;
     BufferedReader in;
     PrintWriter out;
@@ -335,17 +344,18 @@ class ChatClient extends Chatter {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
         } catch (IOException e) {
+            System.err.println(e.getMessage());
             throw new IOException("Failed to get socket streams");
         }
-        System.err.println("new ChatClient created!");
+        System.err.println("New ChatClient created!");
     }
     
     void run() throws IOException {
         BufferedReader userInput = 
             new BufferedReader(new InputStreamReader(System.in));
-        // receive prompt
         try { System.out.println(in.readLine()); }
         catch (IOException e) {
+            System.err.println(e.getMessage());
             throw new IOException("Failed to read from socket.");
         }
         String message = "";
@@ -353,10 +363,12 @@ class ChatClient extends Chatter {
         while (!(message.toLowerCase().equals(terminateString))) {
             try { message = userInput.readLine(); }
             catch (IOException e) {
+                System.err.println(e.getMessage());
                 throw new IOException("Failed to read user input.");
             }
             out.println(message);
         }
+        System.out.println("Closing " + this.getClass().getSimpleName() + "...");
         socket.close();
     }
 }
