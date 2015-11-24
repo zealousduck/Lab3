@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 		else { // (waiting == 1) {
             printf("There's a client waiting to talk!\n");
 			char connectPacket[9];
-			memset(waitingPacket,0,9);
+			memset(connectPacket,0,9);
 			connectPacket[0] = (unsigned char)0xA5;
 			connectPacket[1] = (unsigned char)0xA5;
 			connectPacket[2] = ipAddress[0];
