@@ -95,10 +95,10 @@ int main(int argc, char *argv[])
 		ipAddress[2] = (ipAddr >> 16) & 0xff;
 		ipAddress[3] = (ipAddr >> 24) & 0xff;
 
-		printf("---------------------------------------");
+		printf("---------------------------------------\n");
 		printf("IP ADDRESS:");
 		printf("%d.%d.%d.%d\n", ipAddress[0], ipAddress[1], ipAddress[2], ipAddress[3]);
-		printf("---------------------------------------");
+		printf("---------------------------------------\n");
 
     	int theirGID = buf[4];
     	int theirPort = (buf[2] << 8) + buf[3];
@@ -121,9 +121,9 @@ int main(int argc, char *argv[])
     	    errorCode += 4;
     	}
     	
-    	printf("---------------------------------------");
+    	printf("---------------------------------------\n");
     	printf("Error code: %u\n", errorCode);
-    	printf("---------------------------------------");
+    	printf("---------------------------------------\n");
     	//if error, send error packet
 		if (errorCode != 0x00) {
             printf("Sending error packet\n");
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
 		else if (waiting == 0) {
             printf("There's no client waiting..\n");
 			waiting = 1;
-			char waitPacket[5];
+		    char waitPacket[5];
 			memset(waitPacket,0,5);
 			waitPacket[0] = (unsigned char)0xA5;
 			waitPacket[1] = (unsigned char)0xA5;
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 		else { // (waiting == 1) {
             printf("There's a client waiting to talk!\n");
 			char connectPacket[9];
-			memset(waitingPacket,0,9);
+			memset(connectPacket,0,9);
 			connectPacket[0] = (unsigned char)0xA5;
 			connectPacket[1] = (unsigned char)0xA5;
 			connectPacket[2] = ipAddress[0];
