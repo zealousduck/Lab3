@@ -67,7 +67,8 @@ public class Client {
             return;
         }
         if (chatter != null) {
-            chatter.run();
+            try { chatter.run(); }
+            catch (IOException e) { System.out.println(e.getMessage()); }
         }
     }
 
@@ -270,40 +271,55 @@ class WaitPacket extends UDPPacket {
 
 
 /*================== TCP CHATTERS ========================================*/
-abstract class Chatter { abstract void run(); }
+abstract class Chatter { abstract void run() throws IOException; }
 
 class ChatServer extends Chatter {
-    // Insert socket here
+    ServerSocket serverSocket;
+    Socket socket;
+    BufferedReader in;
+    PrintWriter out;
 
-    ChatServer(int port) {
-        // Stub
+    ChatServer(int port) throws IOException {
         System.err.println("new ChatServer created!");
         System.err.println("port: " + port);
+        try { serverSocket = new ServerSocket(port); }
+        catch (IOException e) { 
+            throw new IOException("Failed to create " + this.getClass().getSimpleName());
+        }
     }
 
-    void run() {
-        System.err.println("...run does nothing!");
-        // Stub
-        // Wait for connections
-        // prompt client
-        // wait for message
-        // print message
-        // terminate?
-        // loop
+    void run() throws IOException {
+        try { socket = serverSocket.accept(); }
+        catch (IOException e) { throw new IOException("Failed to accept connection."); }
+        try {
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new PrintWriter(socket.getOutputStream(), true);
+        } catch (IOException e) {
+            throw new IOException("Failed to get socket streams");
+        }
+        String prompt = ("Hello! Please enter a message:\n");
+        out.println(prompt);
+        String input = "";
+        String terminateString = "bye bye birdie";
+        while (!(input.toLowerCase().equals(terminateString))) {
+            try { input = in.readLine(); }
+            catch (IOException e) {throw new IOException("Failed to read from socket.");}
+            System.out.println(input);
+        }
     }
 }
 
 class ChatClient extends Chatter {
     // Insert socket here
 
-    ChatClient(String ip, int port) {
+    ChatClient(String ip, int port) throws IOException {
         // Stub
         System.err.println("new ChatClient created!");
         System.err.println("ip address: " + ip);
         System.err.println("port: " + port);
     }
     
-    void run() {
+    void run() throws IOException {
         System.err.println("...run does nothing!");
         // Stub
         // connect
