@@ -1,5 +1,5 @@
 /*
-** listener.c -- a datagram sockets "server" demo
+** udp_server.c -- UDP server for LAB3
 */
 
 #include <stdio.h>
@@ -95,7 +95,10 @@ int main(int argc, char *argv[])
 		ipAddress[2] = (ipAddr >> 16) & 0xff;
 		ipAddress[3] = (ipAddr >> 24) & 0xff;
 
+		printf("---------------------------------------");
+		printf("IP ADDRESS:");
 		printf("%d.%d.%d.%d\n", ipAddress[0], ipAddress[1], ipAddress[2], ipAddress[3]);
+		printf("---------------------------------------");
 
     	int theirGID = buf[4];
     	int theirPort = (buf[2] << 8) + buf[3];
@@ -117,7 +120,10 @@ int main(int argc, char *argv[])
     	if (theirPort < (10010 + 5 * theirGID) || theirPort > (10010 + 5 * theirGID + 4)) {
     	    errorCode += 4;
     	}
+    	
+    	printf("---------------------------------------");
     	printf("Error code: %u\n", errorCode);
+    	printf("---------------------------------------");
     	//if error, send error packet
 		if (errorCode != 0x00) {
             printf("Sending error packet\n");
@@ -157,6 +163,7 @@ int main(int argc, char *argv[])
 			//waiting = 0; // why was this here?
 		}
 
+		//client watiing to talk
 		else { // (waiting == 1) {
             printf("There's a client waiting to talk!\n");
 			char connectPacket[9];
