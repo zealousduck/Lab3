@@ -1,4 +1,4 @@
-ƒ/* Client.java
+/* Client.java
  * COMP 4320 - LAB
  * GROUP 1:
  *      Olivia Murphy   - ONM0002
@@ -66,8 +66,16 @@ public class Client {
             System.err.println(e.getMessage());
             return;
         }
+
         if (chatter != null) {
-            chatter.run();
+            try {
+              chatter.run();  
+            }
+
+            catch (Exception e) {
+                System.err.println(e.getMessage());
+                return;
+            }
         }
     }
 
@@ -270,17 +278,18 @@ class WaitPacket extends UDPPacket {
 
 
 /*================== TCP CHATTERS ========================================*/
-abstract class Chatter { abstract void run(); }
+abstract class Chatter { abstract void run() throws java.io.IOException; }
 
 
 
 class ChatServer extends Chatter {
     
     Socket chatServerSock;
+    ServerSocket connectionSock;
 
     ChatServer(int port) {
         try{
-            ServerSocket connectionSock = new ServerSocket(port);
+            connectionSock = new ServerSocket(port);
             System.err.println("new ChatServer created!");
             System.err.println("port: " + port);
             System.out.println("Server Started and listening to the port");
@@ -291,7 +300,7 @@ class ChatServer extends Chatter {
         }
     }
 
-    void run() {
+    void run() throws java.io.IOException {
 
         System.err.println("...run does nothing!");
         System.out.println ("waiting for a partner to connect");
@@ -331,7 +340,7 @@ class ChatClient extends Chatter {
         }
     }
     
-    void run() {
+    void run() throws java.io.IOException {
         System.err.println("...run does nothing!");
 
         String msg = "";
