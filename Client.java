@@ -307,7 +307,7 @@ class ChatServer extends Chatter {
 
         String msg;
 
-        while (true) {
+        while (msg != "Bye Bye Birdie") {
             chatServerSock = connectionSock.accept();
  
             BufferedReader inFromClient = new BufferedReader(new InputStreamReader(chatServerSock.getInputStream()));
@@ -321,6 +321,8 @@ class ChatServer extends Chatter {
          
             System.out.println ("Sending message!\n");
             outToClient.writeBytes(msg + "\n");
+            
+            chatServerSock.close();
         }    
     }
 }
