@@ -305,7 +305,7 @@ class ChatServer extends Chatter {
         System.err.println("...run does nothing!");
         System.out.println ("waiting for a partner to connect");
 
-        String msg;
+        String msg = "";
 
         while (msg != "Bye Bye Birdie") {
             chatServerSock = connectionSock.accept();
