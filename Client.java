@@ -66,8 +66,16 @@ public class Client {
             System.err.println(e.getMessage());
             return;
         }
+
         if (chatter != null) {
-            chatter.run();
+            try {
+              chatter.run();  
+            }
+
+            catch (Exception e) {
+                System.err.println(e.getMessage());
+                return;
+            }
         }
     }
 
@@ -270,40 +278,50 @@ class WaitPacket extends UDPPacket {
 
 
 /*================== TCP CHATTERS ========================================*/
-abstract class Chatter { abstract void run(); }
+abstract class Chatter { abstract void run() throws java.io.IOException; }
 
 
 
 class ChatServer extends Chatter {
+    
     Socket chatServerSock;
-
+    ServerSocket connectionSock;
 
     ChatServer(int port) {
-    try{
-        ServerSocket chatServerSock = new ServerSocket(port);
-        System.err.println("new ChatServer created!");
-        System.err.println("port: " + port);
-        System.out.println("Server Started and listening to the port");
-    }
-    catch (IOException ex)
-    {
-        System.out.println (ex.toString());
+        try{
+            connectionSock = new ServerSocket(port);
+            System.err.println("new ChatServer created!");
+            System.err.println("port: " + port);
+            System.out.println("Server Started and listening to the port");
+        }
+        catch (IOException ex)
+        {
+            System.out.println (ex.toString());
+        }
     }
 
-    }
+    void run() throws java.io.IOException {
 
-    void run() {
         System.err.println("...run does nothing!");
-        // Stub
-        // Wait for connections
-        // prompt client
-        // wait for message
-        // print message
-        // terminate?
-        // loop
-     
-        
+        System.out.println ("waiting for a partner to connect");
 
+        String msg;
+
+        while (true) {
+            chatServerSock = connectionSock.accept();
+ 
+            BufferedReader inFromClient = new BufferedReader(new InputStreamReader(chatServerSock.getInputStream()));
+            DataOutputStream outToClient = new DataOutputStream(chatServerSock.getOutputStream());
+        
+            System.out.println ("enter a message to send!\n");
+
+            msg = inFromClient.readLine();
+
+            System.out.println ("Received: " + msg + "\n");
+         
+            System.out.println ("Sending message!\n");
+            outToClient.writeBytes(msg + "\n");
+        }    
     }
 }
 
@@ -311,27 +329,40 @@ class ChatClient extends Chatter {
     Socket chatClientSock;
 
     ChatClient(String ip, int port) {
-        // Stub
         try{
         Socket chatClientSock = new Socket(ip, port);
         System.err.println("new ChatClient created!");
         System.err.println("ip address: " + ip);
         System.err.println("port: " + port);
-         }
+        }
         catch(IOException ex){
             System.out.println (ex.toString());
         }
     }
     
-    void run() {
+    void run() throws java.io.IOException {
         System.err.println("...run does nothing!");
-        // Stub
-        // connect
-        // receive prompt
-        // get user input
-        // send message
+
+        String msg = "";
+
+        BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));   
+
+        DataOutputStream outToServer = new DataOutputStream(chatClientSock.getOutputStream());   
+        BufferedReader inFromServer = new BufferedReader(new InputStreamReader(chatClientSock.getInputStream()));
+
+        while (msg != "Bye Bye Birdie") {
+            System.out.println ("enter a message to send!");
+
+            msg = inFromUser.readLine();
+
+            System.out.println ("Received: " + msg + "\n");
+
+            System.out.println ("Sending message!\n");
+            outToServer.writeBytes(msg + "\n");
+        }
+
         // terminate?
-        // loop
+        chatClientSock.close();
     }
 }
 
