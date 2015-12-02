@@ -274,6 +274,14 @@ class WaitPacket extends UDPPacket {
 /*================== TCP CHATTERS ========================================*/
 abstract class Chatter { 
     abstract void chat() throws IOException; 
+    void runThreads(BufferedReader in, PrintWriter out) {
+        ChatState state = new ChatState();
+        ChatOutputThread outThread = new ChatOutputThread(out, state);
+        ChatInputThread inThread = new ChatInputThread(in, state);
+        Thread t = new Thread(inThread);
+        t.start();
+        outThread.run();
+    }
 }
 
 class ChatState { boolean open; ChatState() { open = true; } }
@@ -288,13 +296,13 @@ class ChatInputThread extends Thread {
         while (!(input.toLowerCase().equals(terminateString))) {
             try { 
                 input = in.readLine();
-                //if (state.open == false) return; // we're done
+                if (state.open == false) return; // we're done
             } catch (IOException e) {
                 break;
             }
             System.out.println(input);
-            state.open = false;
         }
+        state.open = false;
     }
 }
 
@@ -310,7 +318,7 @@ class ChatOutputThread extends Thread {
         while (!(message.toLowerCase().equals(terminateString))) {
             try { 
                 message = userInput.readLine(); 
-                //if (state.open == false) return; // we're done
+                if (state.open == false) return; // we're done
             } catch (IOException e) {
                 break;
             }
@@ -358,12 +366,13 @@ class ChatServer extends Chatter {
             ("\n=== Welcome to the Group 1's Chat Room! Please enter a message: ===\n");
         out.println(prompt);
         
+        //runThreads(in, out);
         ChatState state = new ChatState();
         ChatOutputThread outThread = new ChatOutputThread(out, state);
         ChatInputThread inThread = new ChatInputThread(in, state);
-        Thread t = new Thread(inThread);
+        Thread t = new Thread(outThread);
         t.start();
-        outThread.run();
+        inThread.run();
 
         System.out.println("Closing " + this.getClass().getSimpleName() + "...");
         socket.close();
@@ -404,12 +413,13 @@ class ChatClient extends Chatter {
             throw new IOException("Failed to read from socket.");
         }
         
+        //runThreads(in, out);
         ChatState state = new ChatState();
         ChatOutputThread outThread = new ChatOutputThread(out, state);
         ChatInputThread inThread = new ChatInputThread(in, state);
-        Thread t = new Thread(inThread);
+        Thread t = new Thread(outThread);
         t.start();
-        outThread.run();
+        inThread.run();
 
         System.out.println("Closing " + this.getClass().getSimpleName() + "...");
         socket.close();
