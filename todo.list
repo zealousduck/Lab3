@@ -1,5 +1,9 @@
 - TCP EVERYTHING
-- see what the ip address is actually getting inserted as (wrong order?)
-- REMEMBER TO RENAME SHIT AT THE END
-- maybe a waiting thread? depends on how i'm feeling
+- Verify that udp_server.c is sending back correct IP and port numbers
+- Fix the ConnectionRefused exception!
+- Fix the termination condition "bye bye birdie" on both Chatters
+- Fix any compile errors that the tux machines might give
 - TEST ON THE TUX MACHINES YOOOOOOOO
+
+- Lastly, rename according Server.c
+- Write/update the report
