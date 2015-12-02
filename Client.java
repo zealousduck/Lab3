@@ -312,7 +312,7 @@ class ChatWriteThread extends Thread {
                 if (userInput.ready()) {
                     message = userInput.readLine(); 
                     out.println(message);
-                } else try { Thread.sleep(500); } catch (InterruptedException i) {}
+                } else try { Thread.sleep(300); } catch (InterruptedException i) {}
                 if (state.open == false) return; // we're done
             } catch (IOException e) {
                 break;
