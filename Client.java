@@ -67,7 +67,7 @@ public class Client {
             return;
         }
         if (chatter != null) {
-            try { chatter.run(); }
+            try { chatter.chat(); }
             catch (IOException e) { System.out.println(e.getMessage()); }
         }
         System.out.println(); // Nice formatting
@@ -272,7 +272,45 @@ class WaitPacket extends UDPPacket {
 
 
 /*================== TCP CHATTERS ========================================*/
-abstract class Chatter { abstract void run() throws IOException; }
+abstract class Chatter { 
+    abstract void chat() throws IOException; 
+}
+
+class ChatInputThread extends Thread {  
+    BufferedReader in;
+    ChatInputThread(BufferedReader readerIn) { in = readerIn; }
+    public void run() {
+        String input = "";
+        String terminateString = "bye bye birdie";
+        while (!(input.toLowerCase().equals(terminateString))) {
+            try { input = in.readLine(); }
+            catch (IOException e) {
+                System.err.println(e.getMessage());
+                break;
+            }
+            System.out.println(input);
+        }
+    }
+}
+
+class ChatOutputThread extends Thread {  
+    PrintWriter out;
+    ChatOutputThread(PrintWriter writerIn) { out = writerIn; }
+    public void run() {
+        BufferedReader userInput =
+            new BufferedReader(new InputStreamReader(System.in));
+        String message = "";
+        String terminateString = "bye bye birdie";
+        while (!(message.toLowerCase().equals(terminateString))) {
+            try { message = userInput.readLine(); }
+            catch (IOException e) {
+                System.err.println(e.getMessage());
+                break;
+            }
+            out.println(message);
+        }
+    }
+}
 
 class ChatServer extends Chatter {
     ServerSocket serverSocket;
@@ -292,7 +330,7 @@ class ChatServer extends Chatter {
         System.err.println("new ChatServer created!");
     }
 
-    void run() throws IOException {
+    void chat() throws IOException {
         try { socket = serverSocket.accept(); }
         catch (IOException e) { 
             System.err.println(e.getMessage());
@@ -311,16 +349,12 @@ class ChatServer extends Chatter {
         String prompt = 
             ("=== Welcome to the Group 1's Chat Room! Please enter a message: ===\n");
         out.println(prompt);
-        String input = "";
-        String terminateString = "bye bye birdie";
-        while (!(input.toLowerCase().equals(terminateString))) {
-            try { input = in.readLine(); }
-            catch (IOException e) {
-                System.err.println(e.getMessage());
-                throw new IOException("Failed to read from socket.");
-            }
-            System.out.println(input);
-        }
+
+        ChatOutputThread outThread = new ChatOutputThread(out);
+        new Thread(outThread).start();
+        ChatInputThread inThread = new ChatInputThread(in);
+        inThread.run();
+
         System.out.println("Closing " + this.getClass().getSimpleName() + "...");
         socket.close();
     }
@@ -351,7 +385,7 @@ class ChatClient extends Chatter {
         System.err.println("New ChatClient created!");
     }
     
-    void run() throws IOException {
+    void chat() throws IOException {
         BufferedReader userInput = 
             new BufferedReader(new InputStreamReader(System.in));
         try { System.out.println(in.readLine()); }
@@ -359,16 +393,12 @@ class ChatClient extends Chatter {
             System.err.println(e.getMessage());
             throw new IOException("Failed to read from socket.");
         }
-        String message = "";
-        String terminateString = "bye bye birdie";
-        while (!(message.toLowerCase().equals(terminateString))) {
-            try { message = userInput.readLine(); }
-            catch (IOException e) {
-                System.err.println(e.getMessage());
-                throw new IOException("Failed to read user input.");
-            }
-            out.println(message);
-        }
+        
+        ChatOutputThread outThread = new ChatOutputThread(out);
+        new Thread(outThread).start();
+        ChatInputThread inThread = new ChatInputThread(in);
+        inThread.run();
+
         System.out.println("Closing " + this.getClass().getSimpleName() + "...");
         socket.close();
     }
