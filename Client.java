@@ -274,22 +274,14 @@ class WaitPacket extends UDPPacket {
 /*================== TCP CHATTERS ========================================*/
 abstract class Chatter { 
     abstract void chat() throws IOException; 
-    void runThreads(BufferedReader in, PrintWriter out) {
-        ChatState state = new ChatState();
-        ChatOutputThread outThread = new ChatOutputThread(out, state);
-        ChatInputThread inThread = new ChatInputThread(in, state);
-        Thread t = new Thread(inThread);
-        t.start();
-        outThread.run();
-    }
 }
 
 class ChatState { boolean open; ChatState() { open = true; } }
 
-class ChatInputThread extends Thread {  
+class ChatReadThread extends Thread {  
     BufferedReader in;
     ChatState state;
-    ChatInputThread(BufferedReader readerIn, ChatState s) { in = readerIn; state = s; }
+    ChatReadThread(BufferedReader readerIn, ChatState s) { in = readerIn; state = s; }
     public void run() {
         String input = "";
         String terminateString = "bye bye birdie";
@@ -306,23 +298,25 @@ class ChatInputThread extends Thread {
     }
 }
 
-class ChatOutputThread extends Thread {  
+class ChatWriteThread extends Thread {  
     PrintWriter out;
     ChatState state;
-    ChatOutputThread(PrintWriter writerIn, ChatState s) { out = writerIn; state = s; }
+    BufferedReader userInput;
+    ChatWriteThread(PrintWriter writerIn, BufferedReader readerIn, ChatState s) { 
+        out = writerIn; userInput = readerIn; state = s; }
     public void run() {
-        BufferedReader userInput =
-            new BufferedReader(new InputStreamReader(System.in));
         String message = "";
         String terminateString = "bye bye birdie";
         while (!(message.toLowerCase().equals(terminateString))) {
             try { 
-                message = userInput.readLine(); 
+                if (userInput.ready()) {
+                    message = userInput.readLine(); 
+                    out.println(message);
+                } else try { Thread.sleep(500); } catch (InterruptedException i) {}
                 if (state.open == false) return; // we're done
             } catch (IOException e) {
                 break;
             }
-            out.println(message);
         }
         state.open = false;
     }
@@ -333,6 +327,7 @@ class ChatServer extends Chatter {
     Socket socket;
     BufferedReader in;
     PrintWriter out;
+    BufferedReader userInput;
 
     ChatServer(int port) throws IOException {
         System.err.println("Creating new ChatServer...");
@@ -355,6 +350,7 @@ class ChatServer extends Chatter {
         try {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
+            userInput = new BufferedReader(new InputStreamReader(System.in));
         } catch (IOException e) {
             System.err.println(e.getMessage());
             throw new IOException("Failed to get socket streams");
@@ -371,13 +367,15 @@ class ChatServer extends Chatter {
         
         //runThreads(in, out);
         ChatState state = new ChatState();
-        ChatOutputThread outThread = new ChatOutputThread(out, state);
-        ChatInputThread inThread = new ChatInputThread(in, state);
+        ChatWriteThread outThread = new ChatWriteThread(out, userInput, state);
+        ChatReadThread inThread = new ChatReadThread(in, state);
         Thread t = new Thread(outThread);
         t.start();
         inThread.run();
 
         System.out.println("Closing " + this.getClass().getSimpleName() + "...");
+        //userInput.close();
+        //in.close();
         socket.close();
     }
 }
@@ -386,6 +384,7 @@ class ChatClient extends Chatter {
     Socket socket;
     BufferedReader in;
     PrintWriter out;
+    BufferedReader userInput;
 
     ChatClient(String ip, int port) throws IOException {
         System.err.println("Creating new ChatClient...");
@@ -400,6 +399,7 @@ class ChatClient extends Chatter {
         try {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
+            userInput = new BufferedReader(new InputStreamReader(System.in));
         } catch (IOException e) {
             System.err.println(e.getMessage());
             throw new IOException("Failed to get socket streams");
@@ -408,8 +408,6 @@ class ChatClient extends Chatter {
     }
     
     void chat() throws IOException {
-        BufferedReader userInput = 
-            new BufferedReader(new InputStreamReader(System.in));
         try { System.out.println(in.readLine()); }
         catch (IOException e) {
             System.err.println(e.getMessage());
@@ -418,13 +416,15 @@ class ChatClient extends Chatter {
         
         //runThreads(in, out);
         ChatState state = new ChatState();
-        ChatOutputThread outThread = new ChatOutputThread(out, state);
-        ChatInputThread inThread = new ChatInputThread(in, state);
+        ChatWriteThread outThread = new ChatWriteThread(out, userInput, state);
+        ChatReadThread inThread = new ChatReadThread(in, state);
         Thread t = new Thread(outThread);
         t.start();
         inThread.run();
 
         System.out.println("Closing " + this.getClass().getSimpleName() + "...");
+        //userInput.close();
+        //in.close();
         socket.close();
     }
 }
