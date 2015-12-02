@@ -359,11 +359,14 @@ class ChatServer extends Chatter {
             System.err.println(e.getMessage());
             throw new IOException("Failed to get socket streams");
         }
-        System.out.println("\n=== Connected to " + 
+        String connectedMsg = ("\n=== Connected to " + 
             socket.getInetAddress().getHostAddress() + 
-            " ===================================\n");
+            " ========================================\n");
+        connectedMsg += "Enter a message to begin chatting!";
+        System.out.println(connectedMsg);
         String prompt = 
-            ("\n=== Welcome to the Group 1's Chat Room! Please enter a message: ===\n");
+            ("\n=== Welcome to the Group 1's Chat Room! ===========================\n");
+        prompt += "Enter a message to begin chatting!";
         out.println(prompt);
         
         //runThreads(in, out);
