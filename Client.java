@@ -310,7 +310,7 @@ class ChatWriteThread extends Thread {
         while (!(message.toLowerCase().equals(terminateString))) {
             try { 
                 if (userInput.ready()) {
-                    message = userInput.readLine(); 
+                    message = userInput.readLine();
                     out.println(message);
                 } else try { Thread.sleep(300); } catch (InterruptedException i) {}
                 if (state.open == false) return; // we're done
